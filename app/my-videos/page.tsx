@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Play, Clock, Flag, FileAudio, X, Layers } from "lucide-react"
+import { Loader2, Play, Clock, Flag, FileAudio, X, Layers, Pencil } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 type Video = {
@@ -210,6 +210,15 @@ export default function VideosPage() {
                     >
                       <Play size={14} />
                       Play
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 flex items-center gap-1"
+                      onClick={() => window.location.href = `/my-videos/${video.id}`}
+                    >
+                      <Pencil size={14} />
+                      Edit
                     </Button>
                   </div>
                 </div>
