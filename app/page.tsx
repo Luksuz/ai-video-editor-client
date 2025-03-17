@@ -283,13 +283,29 @@ export default function VideoEditor() {
       // Send the request to the FastAPI endpoint
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/video/process-and-store`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(requestPayload),
+        // Add these options to ensure proper CORS handling
+        credentials: 'include',
+        mode: 'cors',
       });
 
+      // Log the raw response for debugging
+      console.log("Raw response status:", response.status);
+      console.log("Raw response headers:", Object.fromEntries([...response.headers.entries()]));
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API error: ${errorData.detail || response.statusText}`);
+        const errorText = await response.text();
+        console.error("Error response body:", errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(`API error: ${errorData.detail || response.statusText}`);
+        } catch (e) {
+          throw new Error(`API error: ${response.statusText} - ${errorText.substring(0, 100)}`);
+        }
       }
 
       const result = await response.json();
