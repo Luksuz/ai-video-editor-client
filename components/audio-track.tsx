@@ -232,7 +232,7 @@ export default function AudioTrack({
           disabled={disabled}
         >
           <Flag size={14} />
-          <span className="text-xs">Add Breakpoint</span>
+          <span className="text-xs">Add Breakpoint (Optional)</span>
         </Button>
 
         <div className="absolute top-2 right-24 flex items-center gap-2">

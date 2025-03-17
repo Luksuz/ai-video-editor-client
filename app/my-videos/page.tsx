@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Play, Clock, Flag, FileAudio, X } from "lucide-react"
+import { Loader2, Play, Clock, Flag, FileAudio, X, Layers } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 type Video = {
@@ -12,8 +12,8 @@ type Video = {
   original_url: string
   preview_url: string
   breakpoints: number[]
-  breakpoints_total: number
-  breakpoints_completed: number
+  chunks_total: number
+  chunks_completed: number
   status: string
   updated_at: string
 }
@@ -77,6 +77,42 @@ export default function VideosPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
+  // Function to get progress bar color based on completion percentage
+  const getProgressColor = (completedChunks: number, totalChunks: number) => {
+    const percentage = totalChunks > 0 ? (completedChunks / totalChunks) * 100 : 0
+    
+    if (percentage === 100) return "bg-green-500 dark:bg-green-600"
+    if (percentage >= 75) return "bg-blue-500 dark:bg-blue-600"
+    if (percentage >= 50) return "bg-cyan-500 dark:bg-cyan-600"
+    if (percentage >= 25) return "bg-indigo-500 dark:bg-indigo-600"
+    return "bg-purple-500 dark:bg-purple-600"
+  }
+
+  // Function to get status badge color
+  const getStatusColor = (status: string) => {
+    console.log(videos)
+    switch (status.toLowerCase()) {
+      case 'complete':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+      case 'generating':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+
+    }
+  }
+
+  // Function to get chunks completed text color
+  const getChunksTextColor = (completedChunks: number, totalChunks: number) => {
+    const percentage = totalChunks > 0 ? (completedChunks / totalChunks) * 100 : 0
+    
+    if (percentage === 100) return "text-green-600 dark:text-green-400 font-medium"
+    if (percentage >= 75) return "text-blue-600 dark:text-blue-400"
+    if (percentage >= 50) return "text-cyan-600 dark:text-cyan-400"
+    if (percentage >= 25) return "text-indigo-600 dark:text-indigo-400"
+    return "text-muted-foreground"
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -124,43 +160,38 @@ export default function VideosPage() {
                       <span className="text-sm">Created: {formatDate(video.created_at)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Flag size={16} />
-                      <span className="text-sm">{video.breakpoints_total} breakpoints</span>
+                      <Layers size={16} className="text-indigo-500" />
+                      <span className="text-sm">{video.chunks_total} chunks</span>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <div className={`px-2 py-1 text-xs rounded-full ${
-                      video.status === 'completed' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                        : video.status === 'processing' 
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                          : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                    }`}>
+                    <div className={`px-2 py-1 text-xs rounded-full ${getStatusColor(video.status)}`}>
                       {video.status}
                     </div>
                     
-                    <div className="text-xs text-muted-foreground">
-                      {video.breakpoints_completed}/{video.breakpoints_total} completed
+                    <div className={`text-xs ${getChunksTextColor(video.chunks_completed, video.chunks_total)}`}>
+                      {video.chunks_completed}/{video.chunks_total} completed
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                  {/* Progress bar with enhanced colors */}
+                  <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden relative">
                     <div 
-                      className="h-full bg-primary absolute top-0 left-0"
+                      className={`h-full ${getProgressColor(video.chunks_completed, video.chunks_total)} absolute top-0 left-0`}
                       style={{ 
-                        width: `${video.breakpoints_total > 0 
-                          ? (video.breakpoints_completed / video.breakpoints_total) * 100 
+                        width: `${video.chunks_total > 0 
+                          ? (video.chunks_completed / video.chunks_total) * 100 
                           : 0}%` 
                       }}
                     />
+                    {/* Colorful breakpoints */}
                     {video.breakpoints && video.breakpoints.map((breakpoint, index) => (
                       <div
                         key={index}
-                        className="absolute h-2 w-0.5 bg-primary-foreground z-10"
+                        className="absolute h-2 w-1 bg-white dark:bg-gray-300 z-10"
                         style={{
-                          left: `${(index + 1) / (video.breakpoints.length + 1) * 100}%`,
+                          left: `${(index + 1) / (video.chunks_total + 1) * 100}%`,
                           transform: "translateX(-50%)",
                         }}
                       />
@@ -214,7 +245,7 @@ export default function VideosPage() {
                 <div className="border rounded-lg p-4 space-y-2">
                   <h3 className="font-medium">Breakpoints</h3>
                   {!selectedVideo.breakpoints || selectedVideo.breakpoints.length === 0 ? (
-                    <p className="text-muted-foreground">No breakpoints data available</p>
+                    <p className="text-muted-foreground">No breakpoints added - video will be processed as a single segment</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {selectedVideo.breakpoints.map((time, index) => (
@@ -242,10 +273,14 @@ export default function VideosPage() {
                     <div>{formatDate(selectedVideo.updated_at)}</div>
                     
                     <div className="text-muted-foreground">Status</div>
-                    <div>{selectedVideo.status}</div>
+                    <div className={`px-2 py-0.5 rounded inline-block ${getStatusColor(selectedVideo.status)}`}>
+                      {selectedVideo.status}
+                    </div>
                     
-                    <div className="text-muted-foreground">Breakpoints</div>
-                    <div>{selectedVideo.breakpoints_completed} / {selectedVideo.breakpoints_total}</div>
+                    <div className="text-muted-foreground">Chunks</div>
+                    <div className={getChunksTextColor(selectedVideo.chunks_completed, selectedVideo.chunks_total)}>
+                      {selectedVideo.chunks_completed} / {selectedVideo.chunks_total}
+                    </div>
 
                     {selectedVideo.original_url && (
                       <>

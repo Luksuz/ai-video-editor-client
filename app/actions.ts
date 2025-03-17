@@ -67,7 +67,7 @@ export async function uploadOriginalAudio(formData: FormData) {
     if (!bucketExists) {
       const { error: createBucketError } = await supabase.storage.createBucket("audio-files", {
         public: true,
-        fileSizeLimit: 100 * 1024 * 1024, // 100MB limit
+        fileSizeLimit: 1000 * 1024 * 1024, // 100MB limit
       })
 
       if (createBucketError) {
@@ -280,50 +280,3 @@ export async function checkVideoStatus(videoId: string) {
     }
   }
 }
-
-// Function to save video processing request to Supabase
-export async function saveVideoProcessingRequest(videoResponse: VideoResponse) {
-  try {
-    // Validate environment variables
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Supabase credentials not configured")
-    }
-
-    // Create a Supabase client with service role key for admin operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    
-    // Insert the video record
-    const { data, error } = await supabase
-      .from('videos')
-      .insert({
-        id: videoResponse.video_id,
-        original_url: videoResponse.original_url,
-        preview_url: videoResponse.preview_url,
-        status: videoResponse.success ? 'processing' : 'failed',
-        breakpoints_total: 0, // This would be updated by the background process
-        breakpoints_completed: 0,
-        message: videoResponse.message,
-      })
-      .select()
-    
-    if (error) {
-      console.error("Error saving video processing request:", error)
-      return {
-        success: false,
-        error: error.message,
-      }
-    }
-    
-    return {
-      success: true,
-      video: data[0],
-    }
-  } catch (error) {
-    console.error("Error saving video processing request:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    }
-  }
-}
-

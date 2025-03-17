@@ -257,9 +257,10 @@ export default function VideoEditor() {
       }
 
       // Check if any files haven't been processed yet
-      const unprocessedFiles = audioFiles.filter((file) => !file.uploaded && file.breakpoints.length > 0)
+      const unprocessedFiles = audioFiles.filter((file) => !file.uploaded)
       if (unprocessedFiles.length > 0) {
-        throw new Error("Please save all files with breakpoints before submitting")
+        // Upload all unprocessed files first
+        await Promise.all(unprocessedFiles.map(file => saveAudioFile(file.id)))
       }
 
       // Prepare data for backend - array of objects with supabaseUrl and breakpoints
@@ -394,8 +395,8 @@ export default function VideoEditor() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{formatTime(audio.duration)}</span>
 
-                      {/* Save button - only show if there are breakpoints and not already uploaded */}
-                      {audio.breakpoints.length > 0 && !audio.uploaded && !audio.uploading && (
+                      {/* Save button - show for all files that aren't already uploaded */}
+                      {!audio.uploaded && !audio.uploading && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -452,7 +453,7 @@ export default function VideoEditor() {
                 disabled={
                   isSubmitting ||
                   audioFiles.some((file) => file.uploading) ||
-                  audioFiles.filter((file) => file.breakpoints.length > 0).some((file) => !file.uploaded)
+                  audioFiles.some((file) => !file.uploaded)
                 }
                 className="flex items-center gap-2"
               >
