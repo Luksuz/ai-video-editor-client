@@ -280,17 +280,16 @@ export default function VideoEditor() {
       // Set the debug data to show what we're sending
       setDebugData(JSON.stringify(requestPayload, null, 2))
 
+      console.log("Sending request payload:", requestPayload);
+
       // Send the request to the FastAPI endpoint
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/video/process-and-store`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify(requestPayload),
-        // Add these options to ensure proper CORS handling
-        credentials: 'include',
-        mode: 'cors',
+        // Remove credentials and mode to simplify the request
       });
 
       // Log the raw response for debugging
