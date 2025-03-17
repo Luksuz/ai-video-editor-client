@@ -23,6 +23,7 @@ type AudioTrackProps = {
   onRemoveBreakpoint: (time: number) => void
   totalDuration: number
   disabled?: boolean
+  onTimeUpdate?: (time: number) => void
 }
 
 export default function AudioTrack({
@@ -31,6 +32,7 @@ export default function AudioTrack({
   onRemoveBreakpoint,
   totalDuration,
   disabled = false,
+  onTimeUpdate,
 }: AudioTrackProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -73,7 +75,13 @@ export default function AudioTrack({
 
   const updateTime = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime)
+      const newTime = audioRef.current.currentTime;
+      setCurrentTime(newTime);
+      
+      // Call the onTimeUpdate callback if provided
+      if (onTimeUpdate) {
+        onTimeUpdate(newTime);
+      }
     }
   }
 
@@ -223,35 +231,6 @@ export default function AudioTrack({
 
       <div className="relative">
         <canvas ref={canvasRef} width={800} height={80} className="w-full h-20 rounded border" />
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addBreakpoint}
-          className="absolute top-2 right-2 h-7 flex items-center gap-1"
-          disabled={disabled}
-        >
-          <Flag size={14} />
-          <span className="text-xs">Add Breakpoint (Optional)</span>
-        </Button>
-
-        <div className="absolute top-2 right-24 flex items-center gap-2">
-          <select
-            className="h-7 rounded border text-xs bg-background"
-            onChange={(e) => addEvenBreakpoints(Number.parseInt(e.target.value))}
-            disabled={disabled}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Auto breakpoints
-            </option>
-            <option value="1">1 breakpoint</option>
-            <option value="2">2 breakpoints</option>
-            <option value="3">3 breakpoints</option>
-            <option value="5">5 breakpoints</option>
-            <option value="10">10 breakpoints</option>
-          </select>
-        </div>
       </div>
 
       {audio.breakpoints.length > 0 && (

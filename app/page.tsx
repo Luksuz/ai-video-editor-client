@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, X, Save, Loader2, Upload, FileAudio, GripVertical } from "lucide-react"
+import { Plus, X, Save, Loader2, Upload, FileAudio, GripVertical, Flag, Scissors, Layers } from "lucide-react"
 import AudioTrack from "@/components/audio-track"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -22,6 +22,7 @@ type AudioFile = {
   uploading: boolean
   uploaded: boolean
   chunks: AudioChunk[]
+  currentTime?: number
 }
 
 type AudioChunk = {
@@ -325,6 +326,45 @@ export default function VideoEditor() {
 
   const totalDuration = audioFiles.reduce((acc, file) => acc + file.duration, 0)
 
+  const addEvenBreakpoints = (fileId: string, count: number) => {
+    if (count <= 0) return;
+    
+    const audioFile = audioFiles.find(file => file.id === fileId);
+    if (!audioFile) return;
+    
+    const duration = audioFile.duration;
+    const interval = duration / (count + 1);
+    
+    // Clear existing breakpoints first
+    setAudioFiles(prev => 
+      prev.map(file => 
+        file.id === fileId ? { ...file, breakpoints: [] } : file
+      )
+    );
+    
+    // Add new evenly distributed breakpoints
+    const newBreakpoints: number[] = [];
+    for (let i = 1; i <= count; i++) {
+      const time = interval * i;
+      newBreakpoints.push(time);
+    }
+    
+    // Update the file with new breakpoints
+    setAudioFiles(prev => 
+      prev.map(file => 
+        file.id === fileId ? { ...file, breakpoints: newBreakpoints as number[] } : file
+      )
+    );
+  }
+
+  const updateCurrentTime = (fileId: string, time: number) => {
+    setAudioFiles(prev => 
+      prev.map(file => 
+        file.id === fileId ? { ...file, currentTime: time } : file
+      )
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -426,12 +466,75 @@ export default function VideoEditor() {
                     onRemoveBreakpoint={(time) => removeBreakpoint(audio.id, time)}
                     totalDuration={totalDuration}
                     disabled={audio.uploading || audio.uploaded}
+                    onTimeUpdate={(time) => updateCurrentTime(audio.id, time)}
                   />
+
+                  {/* Add a separate controls section for breakpoint management */}
+                  <div className="mt-3 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {audio.breakpoints.length > 0 ? (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Flag size={14} className="text-green-600" />
+                          <span>{audio.breakpoints.length} breakpoints</span>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Flag size={14} />
+                          <span>No breakpoints</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="h-7 rounded border text-xs bg-background px-2"
+                        onChange={(e) => {
+                          const count = Number.parseInt(e.target.value);
+                          if (!isNaN(count)) {
+                            addEvenBreakpoints(audio.id, count);
+                          }
+                          e.target.value = "";
+                        }}
+                        disabled={audio.uploading || audio.uploaded}
+                        value=""
+                      >
+                        <option value="" disabled>
+                          Auto split
+                        </option>
+                        <option value="1">2 segments</option>
+                        <option value="2">3 segments</option>
+                        <option value="3">4 segments</option>
+                        <option value="5">6 segments</option>
+                        <option value="10">11 segments</option>
+                      </select>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const file = audioFiles.find(f => f.id === audio.id);
+                          if (file) {
+                            // Use the tracked currentTime if available, otherwise use 0
+                            const time = file.currentTime !== undefined ? file.currentTime : 0;
+                            addBreakpoint(audio.id, time);
+                          }
+                        }}
+                        className="h-7 flex items-center gap-1"
+                        disabled={audio.uploading || audio.uploaded}
+                      >
+                        <Scissors size={14} />
+                        <span className="text-xs">Add Breakpoint</span>
+                      </Button>
+                    </div>
+                  </div>
 
                   {/* Show breakpoints summary if any */}
                   {audio.breakpoints.length > 0 && (
                     <div className="mt-4 border-t pt-3">
-                      <h4 className="text-sm font-medium mb-2">Breakpoints:</h4>
+                      <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                        <Layers size={14} className="text-indigo-500" />
+                        <span>Breakpoints:</span>
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {audio.breakpoints.map((time) => (
                           <div key={time} className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded">
