@@ -403,7 +403,7 @@ export default function EditVideoPage() {
         })
         
         // Send POST request to localhost API
-        const response = await fetch('http://localhost:8000/video/replace-chunk', {
+        const response = await fetch(process.env.NEXT_PUBLIC_API_URL_2 as string, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

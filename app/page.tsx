@@ -283,7 +283,7 @@ export default function VideoEditor() {
       console.log("Sending request payload:", requestPayload);
 
       // Send the request to the FastAPI endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/video/process-and-store`, {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL as string, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
